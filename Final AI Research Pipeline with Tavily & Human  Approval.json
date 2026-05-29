@@ -1,0 +1,736 @@
+{
+  "name": "AI Research Pipeline with Tavily & Human  Approval",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate a research report using the following information.\n\nTopic:\n{{ $json.topic }}\n\nSubtopics:\n{{ $json.subtopics }}\n\nDescription:\n{{ $json.description }}\n\nResearch Data from Tavily:\n{{ $json.tavilyResults }}\n\nCreate a complete professional HTML report.\n\nRequirements:\n- Expand important ideas\n- Include key findings\n- Include examples if applicable\n- Add structured sections\n- Add references\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an expert AI Research Analyst and Technical Report Generator.\n\nYour task is to transform research data into a clean, professional, well-structured HTML report.\n\nRules:\n\n1. Always generate valid HTML only for the body and Text for Subject.\n2. Do not include markdown syntax such as ```html or backticks.\n4. Structure the report with:\n5 . Don't Forget to generate the Subject Line for the Report Email and make it plane text \n\n- Title (<h1>)\n- Introduction (<h2>)\n- Topic Overview\n- Separate sections for each subtopic\n- Key insights\n- Bullet point summaries\n- Practical examples when applicable\n- References section\n- Conclusion\n\n5. Use semantic HTML:\n   - <h1>, <h2>, <h3>\n   - <p>\n   - <ul>\n   - <li>\n   - <strong>\n   - <table> when useful\n\n6. Make the report visually readable:\n   - Use clear headings\n   - Use concise paragraphs\n   - Use lists where appropriate\n\n7. If subtopics are provided:\n   - Create a dedicated section for each one.\n   - Expand them with meaningful details.\n\n8. If reviewer feedback exists:\n   - Incorporate the feedback intelligently.\n   - Improve weak areas.\n   - Preserve useful information from previous versions.\n   - Do not remove important content unless feedback requests it.\n\n9. Maintain a professional research tone.\n\n10. End with:\n\n<h2>Conclusion</h2>\n\nfollowed by a concise summary.\n\n11. Include a final:\n\n<h2>References</h2>\n\nsection using any available sources from the research data.\n\nso the general output will be the \n{\n  \"subject\": \"The Subjetc Line of the Out put from Ai agent\",\n  \"body\": \"The Body HTML of the Email\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -2192,
+        880
+      ],
+      "id": "40e3ca9b-d0d4-48a0-b4e9-014f6289c695",
+      "name": "Sales Agent"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"subject\": \"The Subjetc Line of the Out put from Ai agent\",\n  \"body\": \"The Body HTML of the Email\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -1776,
+        1328
+      ],
+      "id": "8862a1dd-e2a0-4583-8747-0788b5e4f3c4",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Subject : {{ $('Set Email').item.json.Subject }}\nbody : {{ $('Set Email').item.json.Body }}\nFeedback from human: {{ $json.data.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=# Overview\nYou are an expert email writer. Your job is to take an incoming email and revise it based on the feedback the human submitted.\n\nAnd please the out put format must be \n{\n  \"subject\": \"The Subjetc Line of the Out put from Ai agent\",\n  \"body\": \"The Body HTML of the Email\"\n}\n\n## Rules\nSign off emails as Jim, Dunder AI\nHere is the current date/time: {{ $now }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -1088,
+        992
+      ],
+      "id": "5d4e2461-9cae-48c9-b3c2-43c1456662c4",
+      "name": "Revision Agent"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3800e373-5f7a-4642-8392-d3a4aed9e067",
+              "name": "Email",
+              "value": "={{ $('On form submission').item.json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "c05b1652-d10e-4a86-86e4-9c0dfc69b1a8",
+              "name": "Subject",
+              "value": "={{ $json.output.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "2518b2e9-21b5-45aa-99a8-488ffb5568b4",
+              "name": "Body",
+              "value": "={{ $json.output.body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1808,
+        880
+      ],
+      "id": "71e41f6f-342c-4452-9658-cdc631145388",
+      "name": "Set Email"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "={{ $json.Email }}",
+        "subject": "=APPROVAL REQUIRED for Research : {{ $json.Subject }}",
+        "message": "={{ $json.Body }}",
+        "responseType": "freeText",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1648,
+        880
+      ],
+      "id": "b6d35eb2-362a-4af6-8300-0a1b354c045d",
+      "name": "Get Feedback",
+      "webhookId": "10605e1c-7bc0-4a9f-b23a-9797cc88449e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Z98W5fs7fGrhce2G",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.data.text }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Approved",
+              "description": "The email has been reviewed and accepted as-is. The human explicitly or implicitly expresses approval, indicating that no changes are needed. \n\nExample phrases include:\n\n\"Looks good.\"\n\"Go ahead and send it.\"\n\"This works for me.\"\n\"Approved.\"\n\"No changes needed.\""
+            },
+            {
+              "category": "Declined",
+              "description": "The email has been reviewed, but the human requests modifications before it is sent like tweaks, removing parts, rewording, etc. This could include suggested edits, rewording, or major revisions. \n\nExample phrases include:\n\n\"Can we tweak this part?\"\n\"Needs some changes.\"\n\"I’d like to reword this.\"\n\"Not quite right—let’s revise it.\"\n\"Can you adjust this before sending?\"\n\"Don't mention that we can't do that\""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1,
+      "position": [
+        -1488,
+        880
+      ],
+      "id": "412c8169-4ad2-4793-9ec1-94d674aba62f",
+      "name": "Check Feedback"
+    },
+    {
+      "parameters": {
+        "formTitle": "User Input Form",
+        "formDescription": "This is the Form for Users to fill in ",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Topic"
+            },
+            {
+              "fieldLabel": "SubTopic"
+            },
+            {
+              "fieldLabel": "description",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email"
+            },
+            {
+              "fieldLabel": "reviewer_email",
+              "fieldType": "email",
+              "placeholder": "hailetechlover@gmail.com"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -2384,
+        880
+      ],
+      "id": "ea14d342-5125-46e5-9405-bceae1b4f100",
+      "name": "On form submission",
+      "webhookId": "d08b4674-adbb-40be-a0cd-94a3ff0de81c"
+    },
+    {
+      "parameters": {
+        "model": "gemma4:31b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -2192,
+        1344
+      ],
+      "id": "813867a9-6be1-4767-ad5b-9fe56207cfba",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "Aj7Js10mMi8RWAfs",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gemma4:31b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -1488,
+        1056
+      ],
+      "id": "0de1544e-8055-42a9-b299-cf78aac19d12",
+      "name": "Ollama Chat Model1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "Aj7Js10mMi8RWAfs",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Query', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavilyTool",
+      "typeVersion": 1,
+      "position": [
+        -2080,
+        1136
+      ],
+      "id": "3fee6f40-59d0-478b-82c5-65f9ac014697",
+      "name": "Search in Tavily",
+      "credentials": {
+        "tavilyApi": {
+          "id": "yaob0JBfMLEZt5pB",
+          "name": "Tavily account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Set Email').item.json.Email }}",
+        "subject": "=Confirmation of The Approved :{{ $('Set Email').item.json.Subject }}\n",
+        "message": "={{ $('Set Email').item.json.Body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        288,
+        608
+      ],
+      "id": "4dd731ba-d946-46c1-9204-f7161a0b65b9",
+      "name": "Get Feedback1",
+      "webhookId": "10605e1c-7bc0-4a9f-b23a-9797cc88449e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Z98W5fs7fGrhce2G",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "Report",
+        "name": "Report.pdf",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1Pjg3heJrm4B-nOB8JzCW5VY11tLl1zwv",
+          "mode": "list",
+          "cachedResultName": "N8N_Project",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1Pjg3heJrm4B-nOB8JzCW5VY11tLl1zwv"
+        },
+        "options": {}
+      },
+      "id": "fe00643e-b92d-4072-8f3a-037355ff8714",
+      "name": "6. Google Drive — Upload PDF",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        -208,
+        608
+      ],
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "OD4jGhxC5Tv69sD7",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1fPbHwqYN73DAkMW9D0E8K3LuWrG7_s3NQYv7m1bu5Qg",
+          "mode": "list",
+          "cachedResultName": "Reasearch_Logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fPbHwqYN73DAkMW9D0E8K3LuWrG7_s3NQYv7m1bu5Qg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fPbHwqYN73DAkMW9D0E8K3LuWrG7_s3NQYv7m1bu5Qg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Topic ": "={{ $('On form submission').item.json.Topic }}",
+            "Reaserch URL": "={{ $json.webViewLink }}",
+            "Reviewer_email": "={{ $('On form submission').item.json.reviewer_email }}",
+            "Submition Date ": "={{ $('On form submission').item.json.submittedAt }}",
+            "SubTopic": "={{ $('On form submission').item.json.SubTopic }}",
+            "Status": "Reviewed"
+          },
+          "matchingColumns": [
+            "Topic "
+          ],
+          "schema": [
+            {
+              "id": "Topic ",
+              "displayName": "Topic ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "SubTopic",
+              "displayName": "SubTopic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reaserch URL",
+              "displayName": "Reaserch URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reviewer_email",
+              "displayName": "Reviewer_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Submition Date ",
+              "displayName": "Submition Date ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "8b227897-1a1b-457b-a1fd-e561861bff0e",
+      "name": "7. Google Sheets — Log Carousel",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        32,
+        608
+      ],
+      "typeVersion": 4.5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7UzbLvY33CpdQr7n",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ad325c1b-1597-45ab-98cd-1801da32e3f1",
+              "name": "data",
+              "type": "string",
+              "value": "={{ $('Set Email').item.json.Body }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e8de5b53-3bcf-43a8-a0af-e4d7bbc8f407",
+      "name": "Create HTML1",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -1104,
+        608
+      ],
+      "typeVersion": 3.3
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $json.data;\n\nconst buffer = Buffer.from(html, 'utf8');\n\nreturn [{\n  binary: {\n    data: {\n      data: buffer.toString('base64'),\n      mimeType: 'text/html',\n      fileName: 'report.html'\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -896,
+        608
+      ],
+      "id": "2824ddae-c5af-4d2f-b271-7b0417a2aa0f",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://v2.convertapi.com/convert/html/to/pdf",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/octet-stream"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "to",
+              "value": "pdf"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "Report"
+            }
+          }
+        }
+      },
+      "id": "eec81a8a-247f-42ae-8451-5b263d2e0d8c",
+      "name": "Convert File to PDF2",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -672,
+        608
+      ],
+      "notesInFlow": true,
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "hn5BSBMJLlqHO8rx",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  // Check if the binary property 'Report' exists\n  if (item.binary && item.binary.Report) {\n    // Update the metadata to PDF\n    item.binary.Report.fileName = 'Report.pdf';\n    item.binary.Report.mimeType = 'application/pdf';\n    item.binary.Report.fileExtension = 'pdf';\n  }\n}\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        608
+      ],
+      "id": "8db82c9d-cb9a-43f1-9c83-c63cc2c68c0f",
+      "name": "Code in JavaScript1"
+    }
+  ],
+  "pinData": {
+    "On form submission": [
+      {
+        "json": {
+          "Topic": "The Ethiopian History",
+          "SubTopic": "The Ethiopian History about imperials",
+          "description": "Give me the best and resent research about the Ethiopian History ",
+          "Email": "haileliulbayetamire@gmail.com",
+          "reviewer_email": "haileliulbayetamire@gmail.com",
+          "submittedAt": "2026-05-29T08:04:37.327+00:00",
+          "formMode": "test"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Sales Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          },
+          {
+            "node": "Revision Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sales Agent": {
+      "main": [
+        [
+          {
+            "node": "Set Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revision Agent": {
+      "main": [
+        [
+          {
+            "node": "Set Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Email": {
+      "main": [
+        [
+          {
+            "node": "Get Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Feedback": {
+      "main": [
+        [
+          {
+            "node": "Check Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Feedback": {
+      "main": [
+        [
+          {
+            "node": "Create HTML1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Revision Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Sales Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Check Feedback",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Sales Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Revision Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search in Tavily": {
+      "ai_tool": [
+        [
+          {
+            "node": "Sales Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6. Google Drive — Upload PDF": {
+      "main": [
+        [
+          {
+            "node": "7. Google Sheets — Log Carousel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7. Google Sheets — Log Carousel": {
+      "main": [
+        [
+          {
+            "node": "Get Feedback1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create HTML1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Convert File to PDF2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert File to PDF2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "6. Google Drive — Upload PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8a64aac6-5742-4ea3-b950-c6a840685eac",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0951bd155e616d23ae1b40fb37199236f8da77ace8511fcf9668ef12c95f2314"
+  },
+  "id": "NRXV4ewR22DZzyhA",
+  "tags": []
+}
